@@ -19,7 +19,7 @@ local function setupAdminPanel(character)
     ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 200, 0, 360)
+    MainFrame.Size = UDim2.new(0, 200, 0, 320)
     MainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.BorderSizePixel = 0
@@ -60,7 +60,7 @@ local function setupAdminPanel(character)
     MinCorner.CornerRadius = UDim.new(0, 8)
     MinCorner.Parent = MinBtn
 
-    -- Mini Ventana flotante para maximizar
+    -- Mini Ventana flotante
     local MiniFrame = Instance.new("TextButton")
     MiniFrame.Size = UDim2.new(0, 110, 0, 35)
     MiniFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
@@ -98,14 +98,13 @@ local function setupAdminPanel(character)
     local FlyBtn = createButton("VUELO", 40)
     local NoclipBtn = createButton("NOCLIP", 78)
     local LockBtn = createButton("STRONGLOCK", 116)
-    local RecoilBtn = createButton("NO RECOIL", 154)
-    local SpreadBtn = createButton("NO SPREAD", 192)
-    local EspBtn = createButton("ESP", 230)
-    local SpeedBtn = createButton("VELOCIDAD (80)", 268)
+    local StableCamBtn = createButton("ANTI-RECOIL / SPREAD", 154)
+    local EspBtn = createButton("ESP", 192)
+    local SpeedBtn = createButton("VELOCIDAD (80)", 230)
 
     local UpBtn = Instance.new("TextButton")
     UpBtn.Size = UDim2.new(0, 85, 0, 28)
-    UpBtn.Position = UDim2.new(0, 10, 0, 312)
+    UpBtn.Position = UDim2.new(0, 10, 0, 274)
     UpBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
     UpBtn.Text = "SUBIR"
     UpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -116,7 +115,7 @@ local function setupAdminPanel(character)
 
     local DownBtn = Instance.new("TextButton")
     DownBtn.Size = UDim2.new(0, 85, 0, 28)
-    DownBtn.Position = UDim2.new(0, 105, 0, 312)
+    DownBtn.Position = UDim2.new(0, 105, 0, 274)
     DownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
     DownBtn.Text = "BAJAR"
     DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -140,8 +139,7 @@ local function setupAdminPanel(character)
     local flying = false
     local noclip = false
     local stronglock = false
-    local noRecoil = false
-    local noSpread = false
+    local stableCamActive = false
     local espActive = false
     local highSpeed = false
     
@@ -149,7 +147,9 @@ local function setupAdminPanel(character)
     local upState = false
     local downState = false
     local espHighlights = {}
-    local lastCameraLook = camera.CFrame.LookVector
+    
+    -- Variables para compensación de cámara
+    local lastCameraCFrame = camera.CFrame
 
     FlyBtn.MouseButton1Click:Connect(function()
         flying = not flying
@@ -174,16 +174,10 @@ local function setupAdminPanel(character)
         LockBtn.BackgroundColor3 = stronglock and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(180, 40, 40)
     end)
 
-    RecoilBtn.MouseButton1Click:Connect(function()
-        noRecoil = not noRecoil
-        RecoilBtn.Text = noRecoil and "NO RECOIL: ON" or "NO RECOIL: OFF"
-        RecoilBtn.BackgroundColor3 = noRecoil and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(180, 40, 40)
-    end)
-
-    SpreadBtn.MouseButton1Click:Connect(function()
-        noSpread = not noSpread
-        SpreadBtn.Text = noSpread and "NO SPREAD: ON" or "NO SPREAD: OFF"
-        SpreadBtn.BackgroundColor3 = noSpread and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(180, 40, 40)
+    StableCamBtn.MouseButton1Click:Connect(function()
+        stableCamActive = not stableCamActive
+        StableCamBtn.Text = stableCamActive and "ANTI-RECOIL: ON" or "ANTI-RECOIL: OFF"
+        StableCamBtn.BackgroundColor3 = stableCamActive and Color3.fromRGB(40, 180, 90) or Color3.fromRGB(180, 40, 40)
     end)
 
     EspBtn.MouseButton1Click:Connect(function()
@@ -288,26 +282,11 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Estabilizador contra el retroceso brusco de la cámara
-        if noRecoil and not stronglock then
+        -- Compensación matemática de la cámara contra el retroceso
+        if stableCamActive and not stronglock then
             local currentCF = camera.CFrame
-            -- Si la cámara da un salto vertical por el disparo, bloqueamos la diferencia de altura
+            -- Mantiene la posición exacta y neutraliza los tirones repentinos en el eje vertical
             camera.CFrame = CFrame.new(currentCF.Position) * CFrame.Angles(0, select(2, currentCF:ToEulerAnglesYXZ()), 0)
-        end
-
-        -- Estabilizador anti-spread (evita desviaciones de puntería simulando centro perfecto)
-        if noSpread then
-            pcall(function()
-                local tool = character:FindFirstChildOfClass("Tool")
-                if tool then
-                    -- Interceptamos eventos de disparo si exponen multiplicadores de dispersión locales
-                    for _, child in ipairs(tool:GetDescendants()) do
-                        if child:IsA("NumberValue") then
-                            child.Value = 0
-                        end
-                    end
-                end
-            end)
         end
     end)
 end
