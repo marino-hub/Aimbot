@@ -9,12 +9,10 @@ local function setupAdminPanel(character)
     local humanoid = character:WaitForChild("Humanoid")
     local camera = Workspace.CurrentCamera
 
-    -- Limpiar interfaz anterior si ya existía
     if player.PlayerGui:FindFirstChild("MobileAdminGui") then
         player.PlayerGui.MobileAdminGui:Destroy()
     end
 
-    -- Crear interfaz gráfica flotante (Panel Admin)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MobileAdminGui"
     ScreenGui.ResetOnSpawn = false
@@ -34,7 +32,8 @@ local function setupAdminPanel(character)
     UICorner.Parent = MainFrame
 
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(0, 200, 0, 30)
+    Title.Size = UDim2.new(0, 160, 0, 30)
+    Title.Position = UDim2.new(0, 0, 0, 0)
     Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     Title.Text = "PANEL RIVALS MÓVIL"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -46,7 +45,39 @@ local function setupAdminPanel(character)
     TitleCorner.CornerRadius = UDim.new(0, 12)
     TitleCorner.Parent = Title
 
-    -- Función auxiliar para crear botones del panel
+    -- Botón de Minimizar (-)
+    local MinBtn = Instance.new("TextButton")
+    MinBtn.Size = UDim2.new(0, 35, 0, 30)
+    MinBtn.Position = UDim2.new(0, 162, 0, 0)
+    MinBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 40)
+    MinBtn.Text = "-"
+    MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinBtn.TextSize = 18
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.Parent = MainFrame
+
+    local MinCorner = Instance.new("UICorner")
+    MinCorner.CornerRadius = UDim.new(0, 8)
+    MinCorner.Parent = MinBtn
+
+    -- Mini Ventana flotante para maximizar
+    local MiniFrame = Instance.new("TextButton")
+    MiniFrame.Size = UDim2.new(0, 110, 0, 35)
+    MiniFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    MiniFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MiniFrame.Text = "[ + ] PANEL"
+    MiniFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MiniFrame.TextSize = 12
+    MiniFrame.Font = Enum.Font.GothamBold
+    MiniFrame.Visible = false
+    MiniFrame.Active = true
+    MiniFrame.Draggable = true
+    MiniFrame.Parent = ScreenGui
+
+    local MiniCorner = Instance.new("UICorner")
+    MiniCorner.CornerRadius = UDim.new(0, 8)
+    MiniCorner.Parent = MiniFrame
+
     local function createButton(name, posY)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0, 180, 0, 32)
@@ -72,10 +103,9 @@ local function setupAdminPanel(character)
     local EspBtn = createButton("ESP", 230)
     local SpeedBtn = createButton("VELOCIDAD (80)", 268)
 
-    -- Botones de Subir y Bajar para el vuelo
     local UpBtn = Instance.new("TextButton")
     UpBtn.Size = UDim2.new(0, 85, 0, 28)
-    UpBtn.Position = UDim2.new(0, 10, 0, 310)
+    UpBtn.Position = UDim2.new(0, 10, 0, 312)
     UpBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
     UpBtn.Text = "SUBIR"
     UpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -86,7 +116,7 @@ local function setupAdminPanel(character)
 
     local DownBtn = Instance.new("TextButton")
     DownBtn.Size = UDim2.new(0, 85, 0, 28)
-    DownBtn.Position = UDim2.new(0, 105, 0, 310)
+    DownBtn.Position = UDim2.new(0, 105, 0, 312)
     DownBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 40)
     DownBtn.Text = "BAJAR"
     DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -95,7 +125,18 @@ local function setupAdminPanel(character)
     DownBtn.Parent = MainFrame
     Instance.new("UICorner", DownBtn).CornerRadius = UDim.new(0, 6)
 
-    -- Estados de las funciones
+    MinBtn.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+        MiniFrame.Position = MainFrame.Position
+        MiniFrame.Visible = true
+    end)
+
+    MiniFrame.MouseButton1Click:Connect(function()
+        MiniFrame.Visible = false
+        MainFrame.Position = MiniFrame.Position
+        MainFrame.Visible = true
+    end)
+
     local flying = false
     local noclip = false
     local stronglock = false
@@ -108,8 +149,8 @@ local function setupAdminPanel(character)
     local upState = false
     local downState = false
     local espHighlights = {}
+    local lastCameraLook = camera.CFrame.LookVector
 
-    -- Conexiones de los Botones
     FlyBtn.MouseButton1Click:Connect(function()
         flying = not flying
         FlyBtn.Text = flying and "VUELO: ON" or "VUELO: OFF"
@@ -182,7 +223,6 @@ local function setupAdminPanel(character)
     DownBtn.MouseButton1Down:Connect(function() downState = true end)
     DownBtn.MouseButton1Up:Connect(function() downState = false end)
 
-    -- Función interna para buscar el enemigo más cercano (Stronglock)
     local function getClosestEnemy()
         local closestTarget = nil
         local shortestDistance = math.huge
@@ -206,7 +246,6 @@ local function setupAdminPanel(character)
         return closestTarget
     end
 
-    -- Bucle principal optimizado
     local connection
     connection = RunService.RenderStepped:Connect(function()
         if not character or not character.Parent or not humanoidRootPart or not humanoidRootPart.Parent or humanoid.Health <= 0 then
@@ -215,7 +254,6 @@ local function setupAdminPanel(character)
             return
         end
 
-        -- Lógica de Vuelo
         if flying then
             humanoid:ChangeState(Enum.HumanoidStateType.Physics)
             local moveDir = humanoid.MoveDirection
@@ -235,7 +273,6 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Lógica de Noclip
         if noclip then
             for _, part in ipairs(character:GetDescendants()) do
                 if part:IsA("BasePart") then
@@ -244,7 +281,6 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Lógica de Stronglock
         if stronglock then
             local target = getClosestEnemy()
             if target then
@@ -252,16 +288,23 @@ local function setupAdminPanel(character)
             end
         end
 
-        -- Lógica de No Recoil y No Spread
-        if noRecoil or noSpread then
+        -- Estabilizador contra el retroceso brusco de la cámara
+        if noRecoil and not stronglock then
+            local currentCF = camera.CFrame
+            -- Si la cámara da un salto vertical por el disparo, bloqueamos la diferencia de altura
+            camera.CFrame = CFrame.new(currentCF.Position) * CFrame.Angles(0, select(2, currentCF:ToEulerAnglesYXZ()), 0)
+        end
+
+        -- Estabilizador anti-spread (evita desviaciones de puntería simulando centro perfecto)
+        if noSpread then
             pcall(function()
                 local tool = character:FindFirstChildOfClass("Tool")
                 if tool then
-                    if noRecoil and tool:FindFirstChild("Recoil") then
-                        tool.Recoil.Value = 0
-                    end
-                    if noSpread and tool:FindFirstChild("Spread") then
-                        tool.Spread.Value = 0
+                    -- Interceptamos eventos de disparo si exponen multiplicadores de dispersión locales
+                    for _, child in ipairs(tool:GetDescendants()) do
+                        if child:IsA("NumberValue") then
+                            child.Value = 0
+                        end
                     end
                 end
             end)
@@ -269,7 +312,6 @@ local function setupAdminPanel(character)
     end)
 end
 
--- Recarga automática al reaparecer
 player.CharacterAdded:Connect(function(newCharacter)
     task.wait(1)
     setupAdminPanel(newCharacter)
